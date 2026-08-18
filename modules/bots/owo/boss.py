@@ -45,10 +45,10 @@ class Boss:
 
     @staticmethod
     async def _watch_ticket_response(client, channel):
-        def is_ticket_response(m):
-            if m.channel.id != channel.id:
+        def is_ticket_response(message):
+            if message.channel.id != channel.id:
                 return False
-            for component in m.components:
+            for component in message.components:
                 try:
                     if "You don't have any boss tickets!" in Component.text(component):
                         return True

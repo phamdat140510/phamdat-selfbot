@@ -100,16 +100,14 @@ All settings live in the `data/` folder. You edit these files, then start the bo
 
 **Bot and extensions**
 
-The tool has one **bot** and three **extensions**. Each module reads only its own file - a token in `owo.json` does not appear in the other files by itself. List an account in each file where you want it to work.
+The tool has one **bot** and one **extension**. Each module reads only its own file - a token in `owo.json` does not appear in the other files by itself. List an account in each file where you want it to work.
 
 | Kind | Name | Config file |
 |------|------|-------------|
 | Bot | OwO | `data/owo.json` |
 | Extension | Quest | `data/quest.txt` |
-| Extension | Chat | `data/chat.json` |
-| Extension | Voice | `data/voice.json` |
 
-The **bot** farms OwO. The **extensions** each run a separate task (Discord quests, chatting, voice). They are independent - fill a file to turn a module on, empty it to turn it off.
+The **bot** farms OwO (daily, quests, checklists, vote, huntbot, boss, gems, gambling...). The **extension** runs a separate task (Discord quests). They are independent - fill a file to turn a module on, empty it to turn it off.
 
 **Multi-account**
 
@@ -139,7 +137,7 @@ In the JSON files, the **top-level key is a Discord account token** - each key i
 - `quest.txt` is plain text, not JSON: one token per line, `#` for comments.
 - `settings.json` is **global** and is not keyed by token.
 - `caches.json` is written by the tool - do not edit it.
-- Edit the files first, then start the tool. `data/owo.json` is the only file it watches - changes are reloaded while the tool is stopped.
+- Edit the files first, then start the tool. Starting always reloads every account from the data files.
 
 </details>
 <details>
@@ -192,8 +190,8 @@ The full OwO farm: hunt, battle, daily, quests, huntbot, giveaway, boss, gems an
 | `hunt` | Boolean | `true` | Send the hunt command |
 | `battle` | Boolean | `true` | Send the battle command |
 | `owo/uwu` | Boolean | `true` | Send a random `owo` or `uwu` |
-| `delay` | Object | `{"min": 0.5, "max": 1}` | Pause between commands (seconds) |
-| `cooldown` | Object | `{"min": 15, "max": 20}` | Pause between cycles (seconds) |
+| `delay` | Object | `{"min": 1, "max": 2}` | Pause between commands (seconds) |
+| `cooldown` | Object | `{"min": 30, "max": 60}` | Pause between cycles (seconds) |
 
 **gem**:
 
@@ -252,44 +250,6 @@ TOKEN_B
 ```
 
 Plain text, one token per line. Lines starting with `#` are ignored. There is nothing else to configure.
-
-</details>
-
-<details>
-<summary><b>Chat</b>  -  Extension  -  <code>data/chat.json</code></summary>
-
-Sends messages into the channels you choose - a random channel and a random message each time. The messages come from `assets/messages.txt`, one per line (empty lines are ignored).
-
-```json
-{
-    "YOUR_TOKEN": {
-        "chat_channel_id": [123456789],
-        "cooldown": {"min": 60, "max": 120},
-        "exist": false
-    }
-}
-```
-
-| Key | Type | Default | Purpose |
-|-----|------|---------|---------|
-| `chat_channel_id` | List | `[]` | Channels to send to; empty means the account is skipped |
-| `cooldown` | Object | `{"min": 60, "max": 120}` | Pause between messages (seconds) |
-| `exist` | Boolean | `false` | `false` sends then deletes (ghost); `true` leaves the message |
-
-</details>
-
-<details>
-<summary><b>Voice</b>  -  Extension  -  <code>data/voice.json</code></summary>
-
-Keeps each account connected to a voice channel and reconnects if it drops.
-
-The key is the token; the value is the voice channel ID - a **bare number, no quotes**.
-
-```json
-{
-    "YOUR_TOKEN": 123456789
-}
-```
 
 </details>
 

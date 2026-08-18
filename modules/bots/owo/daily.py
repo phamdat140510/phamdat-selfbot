@@ -43,12 +43,12 @@ class Daily:
             )
 
             text = message.content.split('!')[-1].strip()
-            h = re.search(r'(\d+)H', text)
-            m = re.search(r'(\d+)M', text)
-            s = re.search(r'(\d+)S', text)
-            hours = int(h.group(1)) if h else 0
-            minutes = int(m.group(1)) if m else 0
-            seconds = int(s.group(1)) if s else 0
+            hours_match = re.search(r'(\d+)H', text)
+            minutes_match = re.search(r'(\d+)M', text)
+            seconds_match = re.search(r'(\d+)S', text)
+            hours = int(hours_match.group(1)) if hours_match else 0
+            minutes = int(minutes_match.group(1)) if minutes_match else 0
+            seconds = int(seconds_match.group(1)) if seconds_match else 0
             wait = hours * 3600 + minutes * 60 + seconds
 
             client.cooldown_reset = wait
@@ -60,4 +60,4 @@ class Daily:
                 client.logger.info(f'Daily not ready (wait {datetime.timedelta(seconds=wait)})')
 
         except asyncio.TimeoutError:
-            client.logger.error('Daily claim timeout')
+            client.logger.warning('Daily claim timeout')

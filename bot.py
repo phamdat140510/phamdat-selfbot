@@ -1,20 +1,16 @@
-import os
 import time
 import threading
 
 from modules.utils.logger import get_logger
+from modules.utils import topgg
 from modules.bots.owo import runtime as owo
 from modules.extensions.quest import runtime as quest
-from modules.extensions.chat import runtime as chat
-from modules.extensions.voice import runtime as voice
 
 logger = get_logger('bot')
 
 BOTS = {'owo': owo}
-EXTENSIONS = {'quest': quest, 'chat': chat, 'voice': voice}
+EXTENSIONS = {'quest': quest}
 
-WATCH_FILES = {'owo.json'}
-_file_mtimes = {}
 _running = False
 _lock = threading.Lock()
 
@@ -26,9 +22,8 @@ class BotManager:
     def boot(self):
         for bot in BOTS.values():
             bot.boot()
-        _init_mtimes()
-        threading.Thread(target=_watch_files, name='file_watcher', daemon=True).start()
 
+    @staticmethod
     def reload():
         for bot in BOTS.values():
             if hasattr(bot, 'reload'):
@@ -40,6 +35,7 @@ class BotManager:
             if _running:
                 return
             BotManager.reload()
+            topgg.clear_stop()
             for bot in BOTS.values():
                 bot.start_macro()
             for ext in EXTENSIONS.values():
@@ -57,6 +53,7 @@ class BotManager:
                 bot.stop_macro()
             for ext in EXTENSIONS.values():
                 ext.stop()
+            topgg.stop()
             _running = False
             self._start_time = None
         logger.info('Stopped')
@@ -66,6 +63,7 @@ class BotManager:
             bot.shutdown()
         for ext in EXTENSIONS.values():
             ext.stop()
+        topgg.stop()
 
     def is_running(self):
         return _running
@@ -87,30 +85,3 @@ class BotManager:
         if bot and hasattr(bot, 'delete_captcha'):
             return bot.delete_captcha(captcha)
         return None
-
-
-def _init_mtimes():
-    _file_mtimes.clear()
-    for filename in WATCH_FILES:
-        path = os.path.join('data', filename)
-        if os.path.isfile(path):
-            _file_mtimes[filename] = os.path.getmtime(path)
-
-
-def _watch_files():
-    while True:
-        for filename in WATCH_FILES:
-            path = os.path.join('data', filename)
-            try:
-                mtime = os.path.getmtime(path)
-            except OSError:
-                continue
-            if filename in _file_mtimes and _file_mtimes[filename] != mtime:
-                _file_mtimes[filename] = mtime
-                with _lock:
-                    if not _running:
-                        logger.info(f'Data file changed: {filename}, reloading')
-                        BotManager.reload()
-                    else:
-                        logger.info(f'Data file changed: {filename} (running, skip reload)')
-        time.sleep(1)

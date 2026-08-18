@@ -107,7 +107,7 @@ class DiscordAPI:
                 return True
             logger.warning(f'Token invalid (status {r.status_code})')
         except Exception as e:
-            logger.error(f'Connection to Discord failed: {e}')
+            logger.warning(f'Connection to Discord failed: {e}')
         return False
 
 
@@ -248,7 +248,7 @@ class QuestAutocompleter:
                 logger.warning(f'Quest fetch error ({r.status_code}): {r.text[:200]}')
                 return []
             except Exception as e:
-                logger.error(f'Error fetching quests: {e}')
+                logger.warning(f'Error fetching quests: {e}')
                 return []
         return []
 
@@ -279,7 +279,7 @@ class QuestAutocompleter:
                 logger.warning(f'Enroll "{name}" failed ({r.status_code}): {r.text[:200]}')
                 return False
             except Exception as e:
-                logger.error(f'Enroll error "{name}": {e}')
+                logger.warning(f'Enroll error "{name}": {e}')
                 return False
         logger.warning(f'Skipping "{name}" after 3 rate limits')
         return False
@@ -321,7 +321,7 @@ class QuestAutocompleter:
                         'timestamp': min(needed, timestamp + random.random())
                     })
                 except Exception as e:
-                    logger.error(f'Video: {e}')
+                    logger.warning(f'Video: {e}')
                     if not self._sleep(1):
                         return
                     continue
@@ -376,7 +376,7 @@ class QuestAutocompleter:
             try:
                 r = self.api.post(f'/quests/{qid}/heartbeat', {'stream_key': stream_key, 'terminal': False})
             except Exception as e:
-                logger.error(f'Heartbeat: {e}')
+                logger.warning(f'Heartbeat: {e}')
                 if not self._sleep(HEARTBEAT_INTERVAL):
                     return
                 continue

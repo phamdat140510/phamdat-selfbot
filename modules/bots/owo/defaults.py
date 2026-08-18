@@ -21,8 +21,8 @@ OWO_DEFAULT_CONFIG = {
         'hunt': True,
         'battle': True,
         'owo/uwu': True,
-        'delay': {'min': 0.5, 'max': 1},
-        'cooldown': {'min': 15, 'max': 20},
+        'delay': {'min': 1, 'max': 2},
+        'cooldown': {'min': 30, 'max': 60},
     },
 
     'gem': {

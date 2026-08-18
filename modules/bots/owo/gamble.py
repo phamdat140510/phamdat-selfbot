@@ -20,22 +20,22 @@ class Gamble:
         if str(client.nickname) not in message.content:
             return
 
-        c = message.content
-        if 'won nothing' in c:
+        content = message.content
+        if 'won nothing' in content:
             client.logger.info(f'Slot lost {client.bet_slot}')
             client.bet_slot *= int(client.config['gamble']['slot']['rate'])
-        elif '<:eggplant:417475705719226369> <:eggplant:417475705719226369> <:eggplant:417475705719226369>' in c:
+        elif '<:eggplant:417475705719226369> <:eggplant:417475705719226369> <:eggplant:417475705719226369>' in content:
             client.logger.info(f'Slot draw {client.bet_slot}')
-        elif '<:heart:417475705899712522> <:heart:417475705899712522> <:heart:417475705899712522>' in c:
+        elif '<:heart:417475705899712522> <:heart:417475705899712522> <:heart:417475705899712522>' in content:
             client.logger.info(f'Slot won {client.bet_slot * 2} (x2)')
             client.bet_slot = int(client.config['gamble']['slot']['bet'])
-        elif '<:cherry:417475705178161162> <:cherry:417475705178161162> <:cherry:417475705178161162>' in c:
+        elif '<:cherry:417475705178161162> <:cherry:417475705178161162> <:cherry:417475705178161162>' in content:
             client.logger.info(f'Slot won {client.bet_slot * 3} (x3)')
             client.bet_slot = int(client.config['gamble']['slot']['bet'])
-        elif '<:cowoncy:417475705912426496> <:cowoncy:417475705912426496> <:cowoncy:417475705912426496>' in c:
+        elif '<:cowoncy:417475705912426496> <:cowoncy:417475705912426496> <:cowoncy:417475705912426496>' in content:
             client.logger.info(f'Slot won {client.bet_slot * 4} (x4)')
             client.bet_slot = int(client.config['gamble']['slot']['bet'])
-        elif '<:o_:417475705899843604> <:w_:417475705920684053> <:o_:417475705899843604>' in c:
+        elif '<:o_:417475705899843604> <:w_:417475705920684053> <:o_:417475705899843604>' in content:
             client.logger.info(f'Slot won {client.bet_slot * 10} (x10)')
             client.bet_slot = int(client.config['gamble']['slot']['bet'])
 
@@ -82,7 +82,7 @@ class Gamble:
                 timeout=5,
             )
         except asyncio.TimeoutError:
-            client.logger.error('Lottery message timeout')
+            client.logger.warning('Lottery message timeout')
             return
 
         wait = Daily.reset_time(client.cooldown_reset)
@@ -126,7 +126,7 @@ class Gamble:
         client.logger.info(f'Sent {client.prefix}bj {client.bet_blackjack}')
 
         try:
-            bj_msg = await client.wait_for(
+            blackjack_message = await client.wait_for(
                 'message',
                 check=lambda m: (
                     client.is_owo_message(m, in_channel=True)
@@ -137,33 +137,33 @@ class Gamble:
                 timeout=5,
             )
         except asyncio.TimeoutError:
-            client.logger.error('Blackjack message timeout')
+            client.logger.warning('Blackjack message timeout')
             return
 
         for _ in range(10):
             await asyncio.sleep(2)
             try:
-                bj_msg = await client.current_channel.fetch_message(bj_msg.id)
+                blackjack_message = await client.current_channel.fetch_message(blackjack_message.id)
             except Exception:
                 break
 
-            footer = str(bj_msg.embeds[0].footer.text) if bj_msg.embeds[0].footer else ''
+            footer = str(blackjack_message.embeds[0].footer.text) if blackjack_message.embeds[0].footer else ''
 
             if 'in progress' in footer or 'resuming previous' in footer:
-                points = re.findall(r'\[(.*?)\]', bj_msg.embeds[0].fields[1].name)
+                points = re.findall(r'\[(.*?)\]', blackjack_message.embeds[0].fields[1].name)
                 if points:
                     my_points = int(points[0])
                     emoji = '👊' if my_points <= 17 else '🛑'
-                    has_reacted = any(reaction.me for reaction in bj_msg.reactions)
+                    has_reacted = any(reaction.me for reaction in blackjack_message.reactions)
                     try:
                         if emoji == '👊':
                             if has_reacted:
-                                await bj_msg.remove_reaction(emoji, client.user)
+                                await blackjack_message.remove_reaction(emoji, client.user)
                             else:
-                                await bj_msg.add_reaction(emoji)
+                                await blackjack_message.add_reaction(emoji)
                             client.logger.info(f'Blackjack {my_points} pts (Hit) - {"Remove" if has_reacted else "Add"} reaction')
                         else:
-                            await bj_msg.add_reaction(emoji)
+                            await blackjack_message.add_reaction(emoji)
                             client.logger.info(f'Blackjack {my_points} pts (Stand)')
                     except Exception:
                         client.logger.exception('Failed to react blackjack')
@@ -207,7 +207,7 @@ class Gamble:
                 timeout=5,
             )
         except asyncio.TimeoutError:
-            client.logger.error('HighLow message timeout')
+            client.logger.warning('HighLow message timeout')
             return
 
         for _ in range(50):

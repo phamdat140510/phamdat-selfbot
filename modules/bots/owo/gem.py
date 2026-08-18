@@ -138,7 +138,7 @@ class Gem:
             await Gem._open_items(client, inv)
             return inv
         except asyncio.TimeoutError:
-            client.logger.error("Couldn't get inventory")
+            client.logger.warning("Couldn't get inventory")
             return []
 
     @staticmethod
@@ -196,4 +196,4 @@ class Gem:
             elif 'not available' in message.content:
                 client.logger.info("Glitch isn't available")
         except asyncio.TimeoutError:
-            client.logger.error("Couldn't get glitch message")
+            client.logger.warning("Couldn't get glitch message")

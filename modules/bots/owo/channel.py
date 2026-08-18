@@ -45,6 +45,8 @@ class Channel:
 
     @staticmethod
     async def change_channel(client):
+        if not client.can_run():
+            return
         channels = client.config['channels_id']
         if len(channels) <= 1:
             return

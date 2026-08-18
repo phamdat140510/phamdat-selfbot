@@ -3,11 +3,12 @@ import threading
 
 from modules.utils.config import deep_merge
 from modules.utils.data_store import read_json
-from modules.utils import cache
+from modules.utils import cache, token
 from modules.utils.logger import get_logger
 from modules.bots.owo.client import OWOClient
 from modules.bots.owo.defaults import OWO_DEFAULT_CONFIG
 from modules.bots.owo.captcha import Captcha
+from modules.bots.owo.interaction import Interaction
 
 logger = get_logger('owo')
 
@@ -15,6 +16,7 @@ loop = None
 thread = None
 clients = []
 clients_by_user = {}
+interaction = None
 
 
 def status():
@@ -28,10 +30,11 @@ def status():
 
 
 def boot():
-    global loop, thread
+    global loop, thread, interaction
     if loop:
         return
 
+    interaction = Interaction(clients)
     loop = asyncio.new_event_loop()
     thread = threading.Thread(target=run_loop, name='owo_runtime', daemon=True)
     thread.start()
@@ -50,30 +53,31 @@ async def start_accounts():
         return
 
     total = len(accounts)
-    for index, (token, config) in enumerate(accounts.items(), start=1):
-        try:
-            client = OWOClient(token=token, config=config, clients=clients)
-            clients.append(client)
-            if index > 1:
-                await asyncio.sleep(2)
-            asyncio.create_task(run_client(client, token), name=f'owo_account_{index}')
-            logger.info(f'Initializing OWO account {index}/{total}')
-        except Exception:
-            logger.exception(f'Failed to initialize OWO account {index}/{total}')
+    names = await asyncio.gather(*(token.validate(t) for t in accounts))
+    index = 0
+    for (token_text, config), name in zip(accounts.items(), names):
+        if not name:
+            logger.warning('Invalid token, skipping account')
+            continue
+        index += 1
+        client = OWOClient(token=token_text, config=config, clients=clients, interaction=interaction)
+        clients.append(client)
+        asyncio.create_task(run_client(client, token_text), name=f'owo_account_{index}')
+        logger.info(f'Initializing {name} ({index}/{total})')
 
 
 def load_accounts():
     raw_accounts = read_json('data/owo.json', {}) or {}
     return {
-        token: deep_merge(OWO_DEFAULT_CONFIG, config)
-        for token, config in raw_accounts.items()
-        if token
+        token_text: deep_merge(OWO_DEFAULT_CONFIG, config)
+        for token_text, config in raw_accounts.items()
+        if token_text
     }
 
 
-async def run_client(client, token):
+async def run_client(client, token_text):
     try:
-        await client.start(token)
+        await client.start(token_text)
     except asyncio.CancelledError:
         pass
     except Exception:
@@ -103,7 +107,7 @@ def stop_macro():
 
 
 def shutdown():
-    global loop, thread
+    global loop, thread, interaction
     if not loop:
         return
 
@@ -123,16 +127,15 @@ def shutdown():
 
     clients.clear()
     clients_by_user.clear()
+    interaction = None
     loop = None
     thread = None
 
 
 async def stop_accounts():
-    for client in clients:
-        try:
-            await client.stop_runtime()
-        except Exception:
-            logger.exception('Failed to stop OWO account runtime')
+    await asyncio.gather(*(client.stop_runtime() for client in clients), return_exceptions=True)
+    if interaction:
+        interaction.stop()
 
 
 def solve_captcha(captcha, answer=None):
@@ -171,19 +174,17 @@ def reload():
 
     future = asyncio.run_coroutine_threadsafe(reload_accounts(), loop)
     try:
-        future.result(timeout=30)
+        future.result(timeout=60)
     except Exception:
         logger.exception('OWO reload failed')
 
 
 async def reload_accounts():
-    for client in clients:
-        try:
-            await client.stop_runtime()
-        except Exception:
-            logger.exception('Failed to stop OWO account during reload')
+    await asyncio.gather(*(client.stop_runtime() for client in clients), return_exceptions=True)
 
     clients.clear()
     clients_by_user.clear()
+    if interaction:
+        interaction.reset()
 
     await start_accounts()

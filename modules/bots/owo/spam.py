@@ -32,17 +32,18 @@ class Spam:
     @staticmethod
     async def spam_cycle(client):
         spam = client.config['spam']
-        delay_min = spam['delay']['min']
-        delay_max = spam['delay']['max']
+        delay_min = float(spam['delay']['min'])
+        delay_max = float(spam['delay']['max'])
+        checklist = client.checklist_flag
 
         try:
             if spam['owo/uwu'] or client.quest_flags.get('owo'):
                 await Spam.send_owo(client)
                 await asyncio.sleep(random.uniform(delay_min, delay_max))
-            if spam['hunt'] or client.quest_flags.get('hunt'):
+            if spam['hunt'] or client.quest_flags.get('hunt') or checklist:
                 await Spam.send_hunt(client)
                 await asyncio.sleep(random.uniform(delay_min, delay_max))
-            if spam['battle'] or client.quest_flags.get('battle'):
+            if spam['battle'] or client.quest_flags.get('battle') or checklist:
                 await Spam.send_battle(client)
                 await asyncio.sleep(random.uniform(delay_min, delay_max))
         except Exception:

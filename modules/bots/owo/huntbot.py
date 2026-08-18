@@ -72,7 +72,7 @@ class Huntbot:
         client.logger.info(f'Sent {client.prefix}hb 1d')
 
         try:
-            msg = await client.wait_for(
+            message = await client.wait_for(
                 'message',
                 check=lambda m: (
                     client.is_owo_message(m, in_channel=True)
@@ -83,7 +83,7 @@ class Huntbot:
                 ),
                 timeout=5,
             )
-            content = msg.content
+            content = message.content
             nick = str(client.nickname)
 
             if 'Please include your password' in content and nick in content:
@@ -93,8 +93,8 @@ class Huntbot:
                     client.cooldown_huntbot = wait + time.time()
                     client.logger.info(f'Huntbot password reset in {datetime.timedelta(seconds=wait)}')
 
-            elif 'Here is your password!' in content and nick in content and msg.attachments:
-                answer = await Huntbot.solve_password(msg.attachments[0].url)
+            elif 'Here is your password!' in content and nick in content and message.attachments:
+                answer = await Huntbot.solve_password(message.attachments[0].url)
                 if not client.can_run() or not client.current_channel:
                     return
                 await client.current_channel.send(f'{client.prefix}hb 1d {answer}')
@@ -115,11 +115,11 @@ class Huntbot:
                     elif 'Wrong password' in verify.content:
                         client.logger.warning('Huntbot wrong password')
                 except asyncio.TimeoutError:
-                    client.logger.error('Huntbot verification timeout')
+                    client.logger.warning('Huntbot verification timeout')
 
             elif 'STILL HUNTING' in content:
-                m = re.search(r'`(.*?)`', content)
-                nums = re.findall(r'[0-9]+', m.group(1)) if m else []
+                match = re.search(r'`(.*?)`', content)
+                nums = re.findall(r'[0-9]+', match.group(1)) if match else []
                 if len(nums) == 1:
                     wait = int(nums[0]) * 60
                 elif len(nums) >= 2:
@@ -133,4 +133,4 @@ class Huntbot:
                 client.logger.info('Claimed huntbot')
 
         except asyncio.TimeoutError:
-            client.logger.error('Huntbot claim timeout')
+            client.logger.warning('Huntbot claim timeout')

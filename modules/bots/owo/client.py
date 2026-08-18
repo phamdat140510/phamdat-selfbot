@@ -10,21 +10,23 @@ from modules.bots.owo.channel import Channel
 from modules.bots.owo.captcha import Captcha
 from modules.bots.owo.task import TaskManager
 from modules.bots.owo.problem import Problem
+from modules.bots.owo.daily import Daily
 from modules.bots.owo.quest import Quest
+from modules.bots.owo.giveaway import Giveaway
 from modules.bots.owo.boss import Boss
 from modules.bots.owo.gem import Gem
-from modules.bots.owo.giveaway import Giveaway
 from modules.bots.owo.gamble import Gamble
 
 
 class OWOClient(discord.Client):
     OWO_BOT_ID = 408785106942164992
 
-    def __init__(self, token, config, clients):
+    def __init__(self, token, config, clients, interaction):
         super().__init__()
         self.token = token
         self.config = deep_merge(OWO_DEFAULT_CONFIG, config or {})
         self.clients = clients
+        self.interaction = interaction
         self.bot_name = 'owo'
         self.prefix = self.config['prefix']
 
@@ -45,9 +47,18 @@ class OWOClient(discord.Client):
         self.cooldown_lottery = 0
         self.cooldown_reset = 0
         self.cooldown_boss = 0
+        self.cooldown_vote = 0
+
+        self.checklist_flag = False
+        self.checklist_cookie = False
+        self.daily_checklist_cooldown = 0
+        self.weekly_checklist_cooldown = 0
+        self.cookie_cooldown = 0
+        self.interaction_cd = {'pray': 0, 'curse': 0, 'battle': 0, 'action': 0}
 
         self.doing_quest = False
-        self.current_quest = None
+        self.quest_fetched = False
+        self.current_quest = []
         self.quest_flags = {
             'owo': False, 'hunt': False, 'battle': False,
             'gamble': False, 'action_someone': False,
@@ -81,6 +92,9 @@ class OWOClient(discord.Client):
 
     def can_run(self):
         return self.macro_enabled and not self.captcha_pending and not self.paused and not self.is_blocked
+
+    def quest_enabled(self):
+        return self.config['quest'] or self.config['checklist']
 
     async def on_ready(self):
         if not self.logger:
@@ -127,10 +141,10 @@ class OWOClient(discord.Client):
         if changing_channel['when_challenge'] or self.quest_flags.get('battle_friend'):
             await Channel.accept_challenge(self, message)
 
-        if self.config['quest']:
+        if self.config['quest'] or self.config['checklist']:
             Quest.quest_progress(self, message)
 
-        if self.config['boss'] and time.time() >= self.cooldown_boss:
+        if (self.config['boss'] or self.config['checklist']) and time.time() >= self.cooldown_boss:
             await Boss.handle(self, message)
 
         if self.config['gem']['use'] or Gem.glitch_available(self):
@@ -170,8 +184,17 @@ class OWOClient(discord.Client):
         if not self.is_closed():
             await self.close()
 
+    def cookie_ready(self):
+        return time.time() >= self.cookie_cooldown
+
+    def mark_cookie(self):
+        self.cookie_cooldown = time.time() + Daily.reset_time(self.cooldown_reset)
+
     def reset_quest_state(self):
         self.doing_quest = False
-        self.current_quest = None
+        self.current_quest = []
+        if self.interaction:
+            for kind in ('pray', 'curse', 'battle', 'action', 'cookie'):
+                self.interaction.unregister(self, kind)
         self.quest_flags = {k: False for k in self.quest_flags}
         self.block_battle = False
